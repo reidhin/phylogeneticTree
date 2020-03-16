@@ -7,7 +7,8 @@ h = Entrez.einfo()
 record = Entrez.read(h)
 h = Entrez.esearch(
     db='nucleotide',
-    term='Wuhan-Hu-1'
+#    term='ebola AND complete genome[title]'
+    term="NC_002549.1"
 )
 result = Entrez.read(h)
 
