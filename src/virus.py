@@ -1,7 +1,10 @@
 # libraries
 import os
+import re
+from Bio import Phylo
 from Bio import Entrez
 from Bio import SeqIO
+from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 from Bio.Align import MultipleSeqAlignment
 from Bio.Align.Applications import MuscleCommandline
 from io import StringIO
@@ -45,17 +48,44 @@ h.close()
 
 if __name__ == '__main__':
     print(os.getcwd())
+
+    # find sequence accession numbers on https://www.ncbi.nlm.nih.gov/labs/virus
     accession_numbers = {
-        'MERS': 'NC_019843',
-        'Corona': 'NC_045512',
-#        'H1N1': 'NC_026436'
+        'NC_019843': 'MERS',
+        'NC_045512': 'Corona',
+        "MK062183": "SARS"
+        # 'H1N1': 'NC_026436'
     }
-    seqs = download_data(list(accession_numbers.values()))
+
+    # download the sequences
+    seqs = download_data(list(accession_numbers.keys()))
+
+    # write them in file for later upload
     SeqIO.write(seqs, os.path.join('..', 'data', "example.fasta"), "fasta")
+
+    # run   muscle to align all sequences
     muscle_exe = os.path.join('..', 'muscle.exe')
     muscle_cline = MuscleCommandline(muscle_exe, input=os.path.join('..', 'data', "example.fasta"))
     stdout, stderr = muscle_cline()
+
+    # read the aligned sequences
     align = AlignIO.read(StringIO(stdout), "fasta")
     print(align)
+
+    # calculate distance - https://biopython.org/wiki/Phylo
+    calculator = DistanceCalculator('identity')
+    dm = calculator.get_distance(align)
+    dm.names = [accession_numbers[re.match("(^\S*)(?=\.)", x)[0]] for x in dm.names]
+    print(dm)
+
+    # construct a tree
+    constructor = DistanceTreeConstructor()
+    tree = constructor.upgma(dm)
+    print(tree)
+    print(Phylo.draw_ascii(tree))
+    Phylo.draw(tree, show_confidence=False)
+
+    # tree.get_nonterminals()[0].name
+
     print('finished')
 
