@@ -1,6 +1,7 @@
 # libraries
 import os
 import re
+import matplotlib.pyplot as plt
 from Bio import Phylo
 from Bio import Entrez
 from Bio import SeqIO
@@ -50,23 +51,43 @@ if __name__ == '__main__':
     print(os.getcwd())
 
     # find sequence accession numbers on https://www.ncbi.nlm.nih.gov/labs/virus
-    accession_numbers = {
-        'NC_019843': 'MERS',
-        'NC_045512': 'Corona',
-        "MK062183": "SARS"
-        # 'H1N1': 'NC_026436'
-    }
 
+    accession_numbers = {
+        'NC_026436': 'H1N1 - swine flu',
+        "NC_007373": "H3N2 - Hong Kong flu",
+        "NC_007381": "H2N2 - Asian flu",
+        'NC_007360': 'H5N1 - bird flu',
+    #    'NC_019843': 'MERS',
+    #    'NC_045512': 'Corona',
+    #    "MK062183": "SARS",
+        "NC_006432": "Ebola",
+        "NC_024781": "Marburg"
+    }
+    '''
+    accession_numbers = {
+        'NC_045512': 'Corona',
+        'NC_044932': 'Norwalk',
+        'NC_043585': 'Ilesha'
+    }
+    '''
     # download the sequences
     seqs = download_data(list(accession_numbers.keys()))
 
     # write them in file for later upload
-    SeqIO.write(seqs, os.path.join('..', 'data', "example.fasta"), "fasta")
+    SeqIO.write(seqs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
 
     # run   muscle to align all sequences
+    # can also be ran online:
+    # https://www.ebi.ac.uk/Tools/services/web/toolresult.ebi?jobId=muscle-I20200329-210908-0063-87869209-p2m
     muscle_exe = os.path.join('..', 'muscle.exe')
-    muscle_cline = MuscleCommandline(muscle_exe, input=os.path.join('..', 'data', "example.fasta"))
+    muscle_cline = MuscleCommandline(muscle_exe, input=os.path.join('..', 'data', "downloads.fasta"))
+    muscle_cline.maxiters = 2
+    print(muscle_cline)
     stdout, stderr = muscle_cline()
+
+    # save for faster processing or testing
+    with open(os.path.join('..', 'data', "alignment.fasta"), "w") as alignment_file:
+        alignment_file.write(stdout)
 
     # read the aligned sequences
     align = AlignIO.read(StringIO(stdout), "fasta")
@@ -83,9 +104,13 @@ if __name__ == '__main__':
     tree = constructor.upgma(dm)
     print(tree)
     print(Phylo.draw_ascii(tree))
-    Phylo.draw(tree, show_confidence=False)
 
-    # tree.get_nonterminals()[0].name
+    fig, ax = plt.subplots(1, 1)
+    for non_terminal in tree.get_nonterminals():
+        non_terminal.name = ''
+    Phylo.draw(tree, show_confidence=False, axes=ax)
+    ax.set_xlim(right=0.8)
+
 
     print('finished')
 
