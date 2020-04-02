@@ -2,9 +2,11 @@
 import os
 import re
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from Bio import Phylo
 from Bio import Entrez
 from Bio import SeqIO
+from Bio.SeqUtils import GC
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor, ParsimonyScorer, \
     ParsimonyTreeConstructor, NNITreeSearcher
 from Bio.Align import MultipleSeqAlignment
@@ -13,6 +15,8 @@ from io import StringIO
 from Bio import AlignIO
 
 
+# https://dmnfarrell.github.io/bioinformatics/bokeh-sequence-aligner
+# https://plotly.com/~johnchase/22/visualizing-bioinformatics-data-with-plo/
 # https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?HostLineage_ss=Homo%20sapiens%20(human),%20taxid:9606&SeqType_s=Nucleotide&Flags_ss=refseq&VirusLineage_ss=Middle%20East%20respiratory%20syndrome-related%20coronavirus%20(MERS-CoV),%20taxid:1335626
 # https://www.cdc.gov/flu/about/viruses/types.htm
 
@@ -35,7 +39,7 @@ def download_data(genome_accession_numbers: list) -> list:
     return seq_records
 
 
-def align_sequences(input_file: str, output_file: str="alignment.fasta") -> MultipleSeqAlignment:
+def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> MultipleSeqAlignment:
     """
     Aligns the sequences using the muscle algorithm
     :param input_file: fasta-file with the input sequences
@@ -70,6 +74,39 @@ def align_sequences(input_file: str, output_file: str="alignment.fasta") -> Mult
 
     # return the aligned sequences
     return AlignIO.read(StringIO(stdout), "fasta")
+
+
+def plot_basics(seqs):
+    fig, axs = plt.subplots(1, 2)
+    axs[0].bar(range(len(seqs)), [len(rec) for rec in seqs])
+    axs[0].set_ylabel('Length')
+    axs[1].bar(range(len(seqs)), [GC(rec.seq) for rec in seqs])
+    axs[1].set_ylabel('GC content')
+    for ax in axs:
+        ax.set_xticks(range(len(seqs)))
+        ax.set_xticklabels(
+            [accession_numbers[re.match("(^\S*)(?=\.)", seq.id)[0]] for seq in seqs],
+            rotation=45,
+            ha='right'
+        )
+    plt.tight_layout()
+
+
+def view_alignment(aln, accession_numbers):
+    """matplotlib sequence alignment view"""
+
+    # make sequence and id lists from the aln object
+    mat = [
+        [0 if nucleotide == '-' else 1 for nucleotide in rec.seq] for rec in aln
+    ]
+    cmap = ListedColormap(['w', 'r'])
+    fig, ax = plt.subplots(1, 1)
+    ax.matshow(mat, cmap=cmap)
+    ax.set_aspect(ax.get_xlim()[1] / ax.get_ylim()[0] / 5)
+    ax.set_yticks(range(len(aln)))
+    ax.set_yticklabels([accession_numbers[re.match("(^\S*)(?=\.)", rec.id)[0]] for rec in aln])
+    ax.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
+    plt.tight_layout()
 
 
 def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
@@ -129,8 +166,6 @@ def plot_phylo_tree_pars(align: MultipleSeqAlignment, accession_numbers: dict):
     return fig
 
 
-
-
 if __name__ == '__main__':
     print(os.getcwd())
 
@@ -145,25 +180,29 @@ if __name__ == '__main__':
         "NC_045512": "Corona",
         "MK062183": "SARS",
         "NC_006432": "Ebola",
-        "NC_024781": "Marburg"
+        "NC_024781": "Marburg",
+        "NC_001802": "HIV 1",
+        "NC_001722": "HIV 2"
     }
 
     # download the sequences
-    #seqs = download_data(list(accession_numbers.keys()))
+    recs = download_data(list(accession_numbers.keys()))
+
+    plot_basics(recs)
 
     # write them in file for later upload
-    #SeqIO.write(seqs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
+    SeqIO.write(recs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
 
     # align the sequences
     #align = align_sequences("downloads.fasta")
     align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta")
     print(align)
+    view_alignment(align, accession_numbers)
 
     # plot the resulting tree
-    #plot_phylo_tree_pars(align, accession_numbers)
+    # plot_phylo_tree_pars(align, accession_numbers)
     plot_phylo_tree(align, accession_numbers)
 
     plt.show()
 
     print('finished')
-
