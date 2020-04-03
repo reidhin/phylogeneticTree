@@ -76,20 +76,21 @@ def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> Mu
     return AlignIO.read(StringIO(stdout), "fasta")
 
 
-def plot_basics(seqs):
+def plot_basics(recs, accession_numbers):
     fig, axs = plt.subplots(1, 2)
-    axs[0].bar(range(len(seqs)), [len(rec) for rec in seqs])
+    axs[0].bar(range(len(recs)), [len(rec) for rec in recs])
     axs[0].set_ylabel('Length')
-    axs[1].bar(range(len(seqs)), [GC(rec.seq) for rec in seqs])
+    axs[1].bar(range(len(recs)), [GC(rec.seq) for rec in recs])
     axs[1].set_ylabel('GC content')
     for ax in axs:
-        ax.set_xticks(range(len(seqs)))
+        ax.set_xticks(range(len(recs)))
         ax.set_xticklabels(
-            [accession_numbers[re.match("(^\S*)(?=\.)", seq.id)[0]] for seq in seqs],
+            [accession_numbers[re.match("(^\S*)(?=\.)", rec.id)[0]] for rec in recs],
             rotation=45,
             ha='right'
         )
     plt.tight_layout()
+    return fig
 
 
 def view_alignment(aln, accession_numbers):
@@ -102,11 +103,15 @@ def view_alignment(aln, accession_numbers):
     cmap = ListedColormap(['w', 'r'])
     fig, ax = plt.subplots(1, 1)
     ax.matshow(mat, cmap=cmap)
-    ax.set_aspect(ax.get_xlim()[1] / ax.get_ylim()[0] / 5)
+    ax.set_aspect(ax.get_xlim()[1] / ax.get_ylim()[0] / 3)
     ax.set_yticks(range(len(aln)))
-    ax.set_yticklabels([accession_numbers[re.match("(^\S*)(?=\.)", rec.id)[0]] for rec in aln])
+    ax.set_yticklabels(
+        [accession_numbers[re.match("(^\S*)(?=\.)", rec.id)[0]] for rec in aln],
+        fontsize=8
+    )
     ax.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
     plt.tight_layout()
+    return fig
 
 
 def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
@@ -167,10 +172,7 @@ def plot_phylo_tree_pars(align: MultipleSeqAlignment, accession_numbers: dict):
 
 
 if __name__ == '__main__':
-    print(os.getcwd())
-
     # find sequence accession numbers on https://www.ncbi.nlm.nih.gov/labs/virus
-
     accession_numbers = {
         "NC_026436": "H1N1 - swine flu",
         "NC_007373": "H3N2 - Hong Kong flu",
@@ -186,22 +188,25 @@ if __name__ == '__main__':
     }
 
     # download the sequences
-    recs = download_data(list(accession_numbers.keys()))
+    #recs = download_data(list(accession_numbers.keys()))
 
-    plot_basics(recs)
+    #fig = plot_basics(recs)
+    #fig.savefig(os.path.join('..', 'figures', 'basic.png'))
 
     # write them in file for later upload
-    SeqIO.write(recs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
+    #SeqIO.write(recs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
 
     # align the sequences
     #align = align_sequences("downloads.fasta")
     align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta")
     print(align)
-    view_alignment(align, accession_numbers)
+    fig = view_alignment(align, accession_numbers)
+    fig.savefig(os.path.join('..', 'figures', 'alignment.png'), bbox_inches='tight', dpi=300)
 
     # plot the resulting tree
     # plot_phylo_tree_pars(align, accession_numbers)
-    plot_phylo_tree(align, accession_numbers)
+    fig = plot_phylo_tree(align, accession_numbers)
+    fig.savefig(os.path.join('..', 'figures', 'tree.png'))
 
     plt.show()
 
