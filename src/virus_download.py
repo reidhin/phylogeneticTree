@@ -9,7 +9,7 @@ from Bio.SeqUtils import GC
 viruses = pd.read_csv(os.path.join('..', 'data', 'viruses.csv'), index_col='Accession number')
 
 # download the sequences
-Entrez.email = 'hans@orikami.nl'  # Always tell NCBI who you are
+Entrez.email = '***'  # Always tell NCBI who you are (replace with your own email address)
 search = " ".join(viruses.index.to_list())
 result = Entrez.read(Entrez.esearch(db="nucleotide", term=search, retmode="xml"))
 seq_records = []
