@@ -39,6 +39,11 @@ for feat in record.features:
 # get cds sequence
 cds_seq.extract(record.seq).translate()
 
+for i in range(len(record.seq)):
+    if i in cds_seq:
+        print(record.seq[i].upper(), end="")
+    else:
+        print(record.seq[i].lower(), end="")
 
 (record.seq[37:132] + record.seq[249:454]+ record.seq[603:732]).translate()
 
