@@ -1,5 +1,13 @@
 # libraries
 from Bio import Entrez
+from Bio.Phylo.TreeConstruction import DistanceCalculator
+from Bio import AlignIO
+
+aln = AlignIO.read('../data/msa.phy', 'phylip')
+print(aln)
+calculator = DistanceCalculator('blastn')
+dm = calculator.get_distance(aln)
+print(dm)
 
 Entrez.email = "hans@orikami.nl"  # Always tell NCBI who you are
 handle = Entrez.einfo()
