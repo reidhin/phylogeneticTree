@@ -27,13 +27,11 @@ for non_terminal in tree.get_nonterminals():
 for terminal in tree.get_terminals():
     terminal.name = viruses.loc[re.match("(^\S*)(?=\.)", terminal.name)[0], 'Virus']
 
-print(Phylo.draw_ascii(tree))
-
 # plot the tree
 fig, ax = plt.subplots(1, 1)
 # draw the resulting tree
 Phylo.draw(tree, show_confidence=False, axes=ax, do_show=False)
-ax.set_xlim(right=0.8)
+ax.set_xlim(right=1.0)
 plt.show()
 
 print('finished')
