@@ -6,6 +6,9 @@ from Bio import SeqIO
 
 Entrez.email = "hans@orikami.nl"  # Always tell NCBI who you are
 
+# check dit
+# https://www.ncbi.nlm.nih.gov/gene/?term=(%22Ape%22%5BOrganism%5D)+AND+HBB%5BGene%5D
+
 handle = Entrez.esearch(db="gene", term='"Homo sapiens"[Organism] AND HBA1[gene]')
 record = Entrez.read(handle)
 gi_list = record["IdList"]
