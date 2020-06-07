@@ -1,11 +1,15 @@
 # libraries
-from Bio import Entrez
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import os
-from Bio import SeqIO
+from io import StringIO
+
+from Bio import Entrez, SeqIO, SeqRecord, SeqFeature, AlignIO
 from Bio.SeqUtils import GC
-from Bio import SeqRecord, SeqFeature
+from Bio.Align import MultipleSeqAlignment
+from Bio.Align.Applications import MuscleCommandline
+
 
 # check dit
 # https://www.ncbi.nlm.nih.gov/gene/?term=(%22Ape%22%5BOrganism%5D)+AND+HBB%5BGene%5D
@@ -139,6 +143,62 @@ with open(os.path.join("..", "data", "Output.xml"), "w") as text_file:
 pass
 '''
 
+def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> MultipleSeqAlignment:
+    """
+    Aligns the sequences using the muscle algorithm
+    :param input_file: fasta-file with the input sequences
+    :param output_file: save as aligned fasta-file
+    :return: MultipleSeqAlignment with the alignment result
+    """
+    # run   muscle to align all sequences
+    # can also be ran online:
+    # https://www.ebi.ac.uk/Tools/services/web/toolresult.ebi?jobId=muscle-I20200329-210908-0063-87869209-p2m
+    '''
+    /nfs/public/ro/es/appbin/linux-x86_64/muscle-3.8.31/muscle -in muscle-I20200329-210908-0063-87869209-p2m.upfile -verbose -log muscle-I20200329-210908-0063-87869209-p2m.output -quiet -fasta -out muscle-I20200329-210908-0063-87869209-p2m.fasta -tree2 muscle-I20200329-210908-0063-87869209-p2m.dnd
+    '''
+
+    # specify where the muscle.exe is located
+    muscle_exe = os.path.join('..', 'muscle3.8.31_i86linux64')
+
+    # define the command line for muscle
+    muscle_cline = MuscleCommandline(muscle_exe, input=os.path.join('..', 'data', input_file))
+
+    # use 2 iterations; when sequences are far apart, the attempt to reach a more finer alignment leads to an error
+    muscle_cline.maxiters = 2
+
+    # report the final command line
+    print(muscle_cline)
+
+    # execute the command
+    stdout, stderr = muscle_cline()
+
+    # save for later faster processing or testing
+    with open(os.path.join('..', 'data', output_file), "w") as alignment_file:
+        alignment_file.write(stdout)
+
+    # return the aligned sequences
+    return AlignIO.read(StringIO(stdout), "fasta")
+
+
+def view_alignment(aln, labels):
+    #Todo: letters that are not the same should have another color
+    """matplotlib sequence alignment view"""
+
+    # make sequence and id lists from the aln object
+    mat = [
+        [0 if nucleotide == '-' else 1 for nucleotide in rec.seq] for rec in aln
+    ]
+    cmap = ListedColormap(['w', 'r'])
+    fig, ax = plt.subplots(1, 1)
+    ax.matshow(mat, cmap=cmap)
+    ax.set_aspect(ax.get_xlim()[1] / ax.get_ylim()[0] / 3)
+    ax.set_yticks(range(len(aln)))
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
+    plt.tight_layout()
+    return fig
+
+
 if __name__ == '__main__':
     organism_list = [
         "Homo sapiens",
@@ -147,22 +207,34 @@ if __name__ == '__main__':
 
     gene_name = 'HBB'
 
+    '''
     # get gene ids
     gene_ids = [get_gene_id(organism, gene_name) for organism in organism_list]
 
     # get gene records
     gene_records = [get_gene_record(gene_id) for gene_id in gene_ids]
 
+    # write them in file for later upload
+    SeqIO.write(gene_records, os.path.join('..', 'data', "trog_downloads.gb"), "genbank")
+    '''
+
+    gene_records = list(SeqIO.parse(os.path.join('..', 'data', "trog_downloads.gb"), "genbank"))
+
     # print one gene record
     print_record(gene_records[0])
-    print('hoi')
 
-    # write them in file for later upload
-    SeqIO.write(gene_records, os.path.join('..', 'data', "trog_downloads.fasta"), "genbank")
-
-    recs = list(SeqIO.parse(os.path.join('..', 'data', "trog_downloads.fasta"), "genbank"))
-    fig = plot_basics(recs, organism_list)
+    fig = plot_basics(gene_records, organism_list)
     #fig.savefig(os.path.join('..', 'figures', 'basic.png'))
+
+    # save as fasta-file for alignment
+    SeqIO.write(gene_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+
+    # align the sequences
+    align = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+#    align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta")
+    print(align)
+    fig = view_alignment(align, organism_list)
+    fig.savefig(os.path.join('..', 'figures', 'trog_alignment.png'), bbox_inches='tight', dpi=300)
 
 
     print('finished!')
