@@ -5,10 +5,12 @@ from matplotlib.colors import ListedColormap
 import os
 from io import StringIO
 
-from Bio import Entrez, SeqIO, SeqRecord, SeqFeature, AlignIO
+from Bio import Entrez, SeqIO, SeqRecord, SeqFeature, AlignIO, Phylo
 from Bio.SeqUtils import GC
 from Bio.Align import MultipleSeqAlignment
 from Bio.Align.Applications import MuscleCommandline
+
+from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 
 
 # check dit
@@ -199,10 +201,50 @@ def view_alignment(aln, labels):
     return fig
 
 
+def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
+    """
+    Plots a phylogenetic tree
+    :param align: MultipleSeqAlignment with the alignment result to be plotted
+    :param accession_numbers: dict of accession numbers and their translation to human-understandable names
+    :return: figure-handle of the plotted phylogenetic tree
+    """
+    # calculate distance - https://biopython.org/wiki/Phylo
+    calculator = DistanceCalculator('trans')
+    dm = calculator.get_distance(align)
+
+    # construct a tree
+    constructor = DistanceTreeConstructor()
+    tree = constructor.upgma(dm)
+
+    # order terminals
+    tree.ladderize()
+
+    # remove the names for the non-terminals for better visual appeal
+    for non_terminal in tree.get_nonterminals():
+        non_terminal.name = ''
+
+    # change accession numbers into human more understandable names
+    for terminal in tree.get_terminals():
+        terminal.name = accession_numbers[terminal.name]
+
+    print(Phylo.draw_ascii(tree))
+
+    # plot the tree
+    fig, ax = plt.subplots(1, 1)
+    # draw the resulting tree
+    Phylo.draw(tree, show_confidence=False, axes=ax, do_show=False)
+    #ax.set_xlim(right=0.8)
+    return fig
+
+
 if __name__ == '__main__':
     organism_list = [
         "Homo sapiens",
-        "Pan troglodytes"
+        "Pan troglodytes",
+        "Gorilla gorilla",
+        "Pongo abelii",
+        "Pan paniscus"
+#        "Hylobates moloch"
     ]
 
     gene_name = 'HBB'
@@ -220,22 +262,58 @@ if __name__ == '__main__':
 
     gene_records = list(SeqIO.parse(os.path.join('..', 'data', "trog_downloads.gb"), "genbank"))
 
+    # translate dict
+    trans_dict = dict(
+        zip(
+            [gr.id for gr in gene_records], organism_list
+        )
+    )
+
     # print one gene record
     print_record(gene_records[0])
 
-    fig = plot_basics(gene_records, organism_list)
+    # create new records
+    new_records = list()
+    for gr in gene_records:
+        feat = get_feature(gr, 'cds')
+        if False:
+            feat = SeqFeature.SeqFeature(
+                SeqFeature.FeatureLocation(
+                    feat.location.start,
+                    feat.location.end,
+                    feat.strand
+                )
+            )
+        new_records.append(
+            SeqRecord.SeqRecord(
+                seq=feat.extract(gr.seq),
+                id=gr.id,
+                description=gr.description
+            )
+        )
+
+    fig = plot_basics(new_records, organism_list)
     #fig.savefig(os.path.join('..', 'figures', 'basic.png'))
 
     # save as fasta-file for alignment
-    SeqIO.write(gene_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+    SeqIO.write(
+        new_records,
+        os.path.join('..', 'data', "trog_before_alignment.fasta"),
+        "fasta"
+    )
 
     # align the sequences
     align = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
-#    align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta")
+#    align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta"
     print(align)
     fig = view_alignment(align, organism_list)
     fig.savefig(os.path.join('..', 'figures', 'trog_alignment.png'), bbox_inches='tight', dpi=300)
 
+    # plot the resulting tree
+    fig = plot_phylo_tree(align, trans_dict)
+    fig.savefig(os.path.join('..', 'figures', 'tree.png'))
+
+    plt.show()
 
     print('finished!')
     # download the sequences
