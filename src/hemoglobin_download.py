@@ -3,11 +3,13 @@ import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import os
+import pandas as pd
+import seaborn as sns
 from io import StringIO
 
-from Bio import Entrez, SeqIO, SeqRecord, SeqFeature, AlignIO, Phylo
+from Bio import Entrez, SeqIO, SeqRecord, SeqFeature, AlignIO, Phylo, Align
 from Bio.SeqUtils import GC
-from Bio.Align import MultipleSeqAlignment
+from Bio.Align import MultipleSeqAlignment, substitution_matrices
 from Bio.Align.Applications import MuscleCommandline
 
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
@@ -237,6 +239,74 @@ def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
     return fig
 
 
+def create_records(records=list, feature='cds') -> list:
+    """
+    :param records:
+    :param feature:
+    :return:
+    """
+    out_records = list()
+    if feature == 'cds':
+        # get cds sequence
+        for rec in records:
+            feat = get_feature(rec, 'cds')
+            out_records.append(
+                SeqRecord.SeqRecord(
+                    seq=feat.extract(rec.seq),
+                    id=rec.id,
+                    description=rec.description
+                )
+            )
+    elif feature == 'amino':
+        for rec in gene_records:
+            feat = get_feature(rec, 'cds')
+            out_records.append(
+                SeqRecord.SeqRecord(
+                    seq=feat.extract(rec.seq).translate(to_stop=True),
+                    id=rec.id,
+                    description=rec.description
+                )
+            )
+    elif feature == 'cds_and_introns':
+        for rec in records:
+            feat = get_feature(rec, 'cds')
+            feat = SeqFeature.SeqFeature(
+                SeqFeature.FeatureLocation(
+                    feat.location.start,
+                    feat.location.end,
+                    feat.strand
+                )
+            )
+            out_records.append(
+                SeqRecord.SeqRecord(
+                    seq=feat.extract(rec.seq),
+                    id=rec.id,
+                    description=rec.description
+                )
+            )
+    else:
+        raise ValueError("feature should be cds, amino, or cds_and_introns")
+    return out_records
+
+
+def get_distance_dataframe(align: Align.MultipleSeqAlignment) -> pd.DataFrame:
+    """
+    :param align:
+    :return:
+    """
+    # calculate distance - https://biopython.org/wiki/Phylo
+    calculator = DistanceCalculator('identity')
+    dm = calculator.get_distance(align)
+
+    df = pd.DataFrame(
+        dm.matrix,
+        index=[trans_dict[ac] for ac in dm.names],
+        columns=[trans_dict[ac] for ac in dm.names]
+    )
+
+    return df
+
+
 if __name__ == '__main__':
     organism_list = [
         "Homo sapiens",
@@ -272,49 +342,76 @@ if __name__ == '__main__':
     # print one gene record
     print_record(gene_records[0])
 
-    # create new records
-    new_records = list()
-    for gr in gene_records:
-        feat = get_feature(gr, 'cds')
-        if False:
-            feat = SeqFeature.SeqFeature(
-                SeqFeature.FeatureLocation(
-                    feat.location.start,
-                    feat.location.end,
-                    feat.strand
-                )
-            )
-        new_records.append(
-            SeqRecord.SeqRecord(
-                seq=feat.extract(gr.seq),
-                id=gr.id,
-                description=gr.description
-            )
-        )
-
-    fig = plot_basics(new_records, organism_list)
-    #fig.savefig(os.path.join('..', 'figures', 'basic.png'))
+    # get amino-acid sequence
+    amino_records = create_records(gene_records, 'amino')
+    fig = plot_basics(amino_records, organism_list)
 
     # save as fasta-file for alignment
-    SeqIO.write(
-        new_records,
-        os.path.join('..', 'data', "trog_before_alignment.fasta"),
-        "fasta"
-    )
+    SeqIO.write(amino_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
 
     # align the sequences
-    align = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
-#    align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta"
-    print(align)
-    fig = view_alignment(align, organism_list)
-    fig.savefig(os.path.join('..', 'figures', 'trog_alignment.png'), bbox_inches='tight', dpi=300)
+    align_amino = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    print(align_amino)
+
+    aligner = Align.PairwiseAligner()
+    alignments = aligner.align(amino_records[0].seq, amino_records[1].seq)
+    for alignment in sorted(alignments):
+        print("Score = %.1f:" % alignment.score)
+        print(alignment)
+
+    # get cds records
+    cds_records = create_records(gene_records, 'cds')
+    fig = plot_basics(cds_records, organism_list)
+
+    # save as fasta-file for alignment
+    SeqIO.write(cds_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+
+    # align the sequences
+    align_cds = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    print(align_cds)
+
+    aligner = Align.PairwiseAligner()
+    aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
+    alignments = aligner.align(cds_records[0].seq, cds_records[1].seq)
+    for alignment in sorted(alignments):
+        print("Score = %.1f:" % alignment.score)
+        print(alignment)
+
+    # get introns sequence
+    full_records = create_records(gene_records, 'cds_and_introns')
+    fig = plot_basics(full_records, organism_list)
+
+    # save as fasta-file for alignment
+    SeqIO.write(full_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+
+    # align the sequences
+    align_full = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    print(align_full)
+
+    for al in [align_amino, align_cds, align_full]:
+        df = get_distance_dataframe(al)
+        plt.figure()
+        sns.heatmap(df*100, fmt='3.2f', annot=True, linewidths=0.5, cmap=sns.light_palette("navy"), cbar=False, square=True)
+        plt.title('Percent difference')
+        plt.tight_layout()
+    plt.show()
 
     # plot the resulting tree
-    fig = plot_phylo_tree(align, trans_dict)
+    fig = plot_phylo_tree(align_cds, trans_dict)
     fig.savefig(os.path.join('..', 'figures', 'tree.png'))
 
     plt.show()
 
+    df_cds = get_distance_dataframe(align_cds)
+    df_full = get_distance_dataframe(align_full)
+    df_cds = df_cds.fillna(0) + df_cds.transpose().fillna(0)
+    df_full = df_full.fillna(0) + df_full.transpose().fillna(0)
+    df_intron = (df_full * align_full.get_alignment_length() - df_cds * align_cds.get_alignment_length()) / \
+                (align_full.get_alignment_length() - align_cds.get_alignment_length())
+    sns.heatmap(df_intron*100, fmt='3.2f', annot=True, linewidths=0.5, cmap=sns.light_palette("navy"), cbar=False, square=True)
+    plt.title('Percent difference')
+    plt.tight_layout()
+    plt.show()
+
+
     print('finished!')
-    # download the sequences
-    # recs = download_data(list(accession_numbers.keys()))
