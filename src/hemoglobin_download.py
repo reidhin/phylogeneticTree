@@ -94,7 +94,7 @@ def get_feature(record: SeqRecord, feature:str) -> SeqFeature:
     return feat_to_return
 
 
-def print_record(record):
+def print_record(record, line_length=int(100)):
     # get features
     feat_source = get_feature(record, 'source')
     feat_gene = get_feature(record, 'gene')
@@ -107,45 +107,28 @@ def print_record(record):
     aminos = feat_cds.extract(record.seq).translate()
     list_matches = list("  ".join(["|"]*len(aminos)) + "  ")
     list_aminos_sep = list("==".join([a for a in aminos]) + "==")
-    line_length = int(100)
     line = int(0)
+    out = ""
     while line*line_length < len(record.seq):
         r = range(line*line_length, (line+1)*line_length)
         # print gene
-        print(feat_gene.extract(record.seq)[r.start:r.stop])
+        out = out + feat_gene.extract(record.seq)[r.start:r.stop] + "\n"
+        # print(feat_gene.extract(record.seq)[r.start:r.stop])
         # print matches and aminos
         for temp_list in [list_matches, list_aminos_sep]:
             for i in r:
                 if i in feat_cds_for_printing:
-                    print(temp_list.pop(0), end ="")
+                    out = out + temp_list.pop(0)
+                    # print(temp_list.pop(0), end ="")
                 else:
-                    print(" ", end="")
-            print()
-        print()
+                    out = out + " "
+                    # print(" ", end="")
+            out = out + "\n"
+            # print()
+        out = out + "\n"
+        # print()
         line = line + 1
-
-
-'''
-cds_seq = ''
-for feat in record.features:
-    if feat.type.lower() == 'cds':
-        cds_seq = feat
-        break
-# get cds sequence
-cds_seq.extract(record.seq).translate()
-
-for i in range(len(record.seq)):
-    if i in cds_seq:
-        print(record.seq[i].upper(), end="")
-    else:
-        print(record.seq[i].lower(), end="")
-
-(record.seq[37:132] + record.seq[249:454] + record.seq[603:732]).translate()
-
-with open(os.path.join("..", "data", "Output.xml"), "w") as text_file:
-    text_file.write(ET.tostring(root, encoding='utf8').decode('utf8'))
-pass
-'''
+    return out
 
 def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> MultipleSeqAlignment:
     """
@@ -340,7 +323,16 @@ if __name__ == '__main__':
     )
 
     # print one gene record
-    print_record(gene_records[0])
+    fig = plt.figure(figsize=(8, 8.5))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.text(0.05, 0.95, print_record(gene_records[0], int(100)),
+            horizontalalignment='left',
+            verticalalignment='top',
+            family='monospace',
+            fontsize=8,
+            transform=ax.transAxes)
+    ax.set_axis_off()
+    fig.savefig(os.path.join("..", "figures", "human_gene_DNA.png"))
 
     # get amino-acid sequence
     amino_records = create_records(gene_records, 'amino')
