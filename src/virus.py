@@ -194,6 +194,23 @@ if __name__ == '__main__':
     fig = plot_basics(recs)
     fig.savefig(os.path.join('..', 'figures', 'basic.png'))
 
+    '''
+    import seaborn as sns
+    p1 = sns.scatterplot(
+        [len(seq_record) for seq_record in seq_records],  # Horizontal axis
+        [GC(seq_record.seq) for seq_record in seq_records],  # Vertical axis
+        legend=False
+    )
+
+    for line in range(len(seq_records)):
+        p1.text(
+            len(seq_records[line]) + 0.01,
+            GC(seq_records[line].seq),
+            viruses.loc[re.match("(^\S*)(?=\.)", seq_records[line].id)[0], 'Virus'],
+            horizontalalignment='left'
+        )
+    '''
+
     # write them in file for later upload
     #SeqIO.write(recs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
 

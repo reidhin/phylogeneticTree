@@ -27,11 +27,15 @@ for non_terminal in tree.get_nonterminals():
 for terminal in tree.get_terminals():
     terminal.name = viruses.loc[re.match("(^\S*)(?=\.)", terminal.name)[0], 'Virus']
 
+# permutate the leaves of the tree into better order
+tree.ladderize()
+
 # plot the tree
 fig, ax = plt.subplots(1, 1)
 # draw the resulting tree
 Phylo.draw(tree, show_confidence=False, axes=ax, do_show=False)
 ax.set_xlim(right=1.0)
 plt.show()
+fig.savefig(os.path.join('..', 'figures', 'tree.png'))
 
 print('finished')
