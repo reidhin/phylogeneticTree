@@ -189,10 +189,10 @@ if __name__ == '__main__':
     }
 
     # download the sequences
-    #recs = download_data(list(accession_numbers.keys()))
+    recs = download_data(list(accession_numbers.keys()))
 
-    #fig = plot_basics(recs)
-    #fig.savefig(os.path.join('..', 'figures', 'basic.png'))
+    fig = plot_basics(recs)
+    fig.savefig(os.path.join('..', 'figures', 'basic.png'))
 
     # write them in file for later upload
     #SeqIO.write(recs, os.path.join('..', 'data', "downloads.fasta"), "fasta")
