@@ -20,9 +20,9 @@ for id in result['IdList']:
 # plot some basic information on the sequences
 fig, axs = plt.subplots(1, 2)
 axs[0].bar(range(len(seq_records)), [len(seq_record) for seq_record in seq_records])
-axs[0].set_ylabel('Length')
+axs[0].set_ylabel('Genome length [# nucleotides]')
 axs[1].bar(range(len(seq_records)), [GC(seq_record.seq) for seq_record in seq_records])
-axs[1].set_ylabel('GC content')
+axs[1].set_ylabel('GC content [%]')
 for ax in axs:
     ax.set_xticks(range(len(seq_records)))
     ax.set_xticklabels(
@@ -30,7 +30,10 @@ for ax in axs:
         rotation=45,
         ha='right'
     )
+    ax.grid(True, axis='y')  # add horizontal grid lines
+    ax.set_axisbelow(True)   # move the grid lines to the background
 plt.tight_layout()
+fig.savefig(os.path.join('..', 'figures', 'basic.png'))
 
 # write them in file for later upload
 SeqIO.write(seq_records, os.path.join("..", "data", "downloads.fasta"), "fasta")
