@@ -218,7 +218,7 @@ def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
     fig, ax = plt.subplots(1, 1)
     # draw the resulting tree
     Phylo.draw(tree, show_confidence=False, axes=ax, do_show=False)
-    #ax.set_xlim(right=0.8)
+    ax.set_xlim(right=1.3*ax.get_xlim()[1])
     return fig
 
 
@@ -336,7 +336,7 @@ if __name__ == '__main__':
 
     # get amino-acid sequence
     amino_records = create_records(gene_records, 'amino')
-    fig = plot_basics(amino_records, organism_list)
+    #fig = plot_basics(amino_records, organism_list)
 
     # save as fasta-file for alignment
     SeqIO.write(amino_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
@@ -353,7 +353,7 @@ if __name__ == '__main__':
 
     # get cds records
     cds_records = create_records(gene_records, 'cds')
-    fig = plot_basics(cds_records, organism_list)
+    #fig = plot_basics(cds_records, organism_list)
 
     # save as fasta-file for alignment
     SeqIO.write(cds_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
@@ -371,7 +371,7 @@ if __name__ == '__main__':
 
     # get introns sequence
     full_records = create_records(gene_records, 'cds_and_introns')
-    fig = plot_basics(full_records, organism_list)
+    #fig = plot_basics(full_records, organism_list)
 
     # save as fasta-file for alignment
     SeqIO.write(full_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
@@ -380,19 +380,25 @@ if __name__ == '__main__':
     align_full = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
     print(align_full)
 
-    for al in [align_amino, align_cds, align_full]:
+    for al, name in zip([align_amino, align_cds, align_full], ["amino-acids", "exons", "exons and introns"]):
         df = get_distance_dataframe(al)
         plt.figure()
-        sns.heatmap(df*100, fmt='3.2f', annot=True, linewidths=0.5, cmap=sns.light_palette("navy"), cbar=False, square=True)
-        plt.title('Percent difference')
+        sns.heatmap(
+            df*100,
+            fmt='3.2f',
+            annot=True,
+            linewidths=0.5,
+            cmap=sns.light_palette("navy"),
+            cbar=False,
+            square=True
+        )
+        plt.title(f'Percent difference based on {name}')
         plt.tight_layout()
-    plt.show()
+        plt.savefig(os.path.join('..', 'figures', f'distance_{name}_{gene_name}.png'))
 
     # plot the resulting tree
     fig = plot_phylo_tree(align_cds, trans_dict)
-    fig.savefig(os.path.join('..', 'figures', 'tree.png'))
-
-    plt.show()
+    fig.savefig(os.path.join('..', 'figures', f'tree_{gene_name}.png'))
 
     df_cds = get_distance_dataframe(align_cds)
     df_full = get_distance_dataframe(align_full)
@@ -400,10 +406,42 @@ if __name__ == '__main__':
     df_full = df_full.fillna(0) + df_full.transpose().fillna(0)
     df_intron = (df_full * align_full.get_alignment_length() - df_cds * align_cds.get_alignment_length()) / \
                 (align_full.get_alignment_length() - align_cds.get_alignment_length())
-    sns.heatmap(df_intron*100, fmt='3.2f', annot=True, linewidths=0.5, cmap=sns.light_palette("navy"), cbar=False, square=True)
+    sns.heatmap(
+        df_intron*100,
+        fmt='3.2f',
+        annot=True,
+        linewidths=0.5,
+        cmap=sns.light_palette("navy"),
+        cbar=False,
+        square=True
+    )
     plt.title('Percent difference')
     plt.tight_layout()
     plt.show()
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # save as fasta-file for alignment
+    out_records = list()
+    for i in range(2):
+        cds = cds_records[i]
+        cds.id = f"cds_{i}"
+        full = full_records[i]
+        full.id = f"full_{i}"
+        out_records = out_records + [cds, full]
+
+    SeqIO.write(
+        out_records,
+        os.path.join('..', 'data', "trog_before_alignment.fasta"),
+        "fasta"
+    )
+
+    # align the sequences
+    align_print = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    print(align_print)
+
+    d = dict(zip([a.id for a in align_print], [i for i in range(len(align_print))]))
+    for i in range(align_print.get_alignment_length()):
+        pass
 
 
     print('finished!')

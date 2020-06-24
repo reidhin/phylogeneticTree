@@ -15,4 +15,7 @@ df['sequence'] = [
 df['amino acid (1 letter)'] = df['sequence'].apply(lambda x: Seq(x, IUPAC.unambiguous_dna).translate())
 df['amino acid (3 letter)'] = df['amino acid (1 letter)'].apply(lambda x: seq3(x))
 
-df.groupby(['amino acid (1 letter)', 'amino acid (3 letter)'])['sequence'].apply(', '.join).reset_index()
+df.groupby(
+    ['amino acid (1 letter)', 'amino acid (3 letter)']
+)['sequence'].apply(', '.join).reset_index().to_csv("test.csv", index=False)
+
