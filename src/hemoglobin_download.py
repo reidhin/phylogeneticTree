@@ -439,6 +439,7 @@ if __name__ == '__main__':
     align_print = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
     print(align_print)
 
+    # todo: check if nucleotide is part of the cds by position
     d = dict(zip([a.id for a in align_print], [i for i in range(len(align_print))]))
     comb_0 = "".join([f.lower() if c == '-' else f for f, c in zip(align_print[d['full_0']], align_print[d['cds_0']])])
     comb_1 = "".join([f.lower() if c == '-' else f for f, c in zip(align_print[d['full_1']], align_print[d['cds_1']])])
@@ -468,6 +469,7 @@ if __name__ == '__main__':
             transform=ax.transAxes)
     ax.set_axis_off()
     fig.savefig(os.path.join("..", "figures", "human_to_chimp.png"))
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
     print('finished!')
