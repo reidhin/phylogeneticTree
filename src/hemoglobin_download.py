@@ -440,8 +440,34 @@ if __name__ == '__main__':
     print(align_print)
 
     d = dict(zip([a.id for a in align_print], [i for i in range(len(align_print))]))
-    for i in range(align_print.get_alignment_length()):
-        pass
+    comb_0 = "".join([f.lower() if c == '-' else f for f, c in zip(align_print[d['full_0']], align_print[d['cds_0']])])
+    comb_1 = "".join([f.lower() if c == '-' else f for f, c in zip(align_print[d['full_1']], align_print[d['cds_1']])])
+    match = "".join(["|" if c1 == c2 else " " for c1, c2 in zip(comb_0, comb_1)])
+
+    line_length = 100
+    line = int(0)
+    out = ""
+    while line * line_length < align_print.get_alignment_length():
+        r = range(line * line_length, (line + 1) * line_length)
+        # print first sequence
+        out = out + comb_0[r.start:r.stop] + "\n"
+        out = out + match[r.start:r.stop] + "\n"
+        out = out + comb_1[r.start:r.stop] + "\n"
+        out = out + "\n"
+        # print()
+        line = line + 1
+
+    # print one gene record
+    fig = plt.figure(figsize=(8, 8.5))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.text(0.05, 0.95, out,
+            horizontalalignment='left',
+            verticalalignment='top',
+            family='monospace',
+            fontsize=8,
+            transform=ax.transAxes)
+    ax.set_axis_off()
+    fig.savefig(os.path.join("..", "figures", "human_to_chimp.png"))
 
 
     print('finished!')
