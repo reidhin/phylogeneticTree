@@ -17,5 +17,8 @@ df['amino acid (3 letter)'] = df['amino acid (1 letter)'].apply(lambda x: seq3(x
 
 df.groupby(
     ['amino acid (1 letter)', 'amino acid (3 letter)']
-)['sequence'].apply(', '.join).reset_index().to_csv("test.csv", index=False)
+)['sequence'].apply(', '.join).reset_index().to_csv(
+    "codon-translation-table.csv",
+    index=False
+)
 
