@@ -9,7 +9,7 @@ from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstruct
 viruses = pd.read_csv(os.path.join('..', 'data', 'viruses.csv'), index_col='Accession number')
 
 # get the alignment
-align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta")
+align = AlignIO.read(os.path.join("..", "data", "virus_alignment.fasta"), "fasta")
 
 # calculate distance - https://biopython.org/wiki/Phylo
 calculator = DistanceCalculator('identity')

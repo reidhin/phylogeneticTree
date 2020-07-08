@@ -43,7 +43,7 @@ ax.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=Fals
 plt.tight_layout()
 
 # save for later faster processing or testing
-with open(os.path.join('..', 'data', "alignment.fasta"), "w") as alignment_file:
+with open(os.path.join('..', 'data', "virus_alignment.fasta"), "w") as alignment_file:
     alignment_file.write(stdout)
 
 print('finished')

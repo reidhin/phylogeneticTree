@@ -130,7 +130,7 @@ def print_record(record, line_length=int(100)):
         line = line + 1
     return out
 
-def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> MultipleSeqAlignment:
+def align_sequences(input_file: str, output_file: str = "virus_alignment.fasta") -> MultipleSeqAlignment:
     """
     Aligns the sequences using the muscle algorithm
     :param input_file: fasta-file with the input sequences
@@ -186,11 +186,12 @@ def view_alignment(aln, labels):
     return fig
 
 
-def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
+def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict, title=""):
     """
     Plots a phylogenetic tree
     :param align: MultipleSeqAlignment with the alignment result to be plotted
     :param accession_numbers: dict of accession numbers and their translation to human-understandable names
+    :param title: string of title
     :return: figure-handle of the plotted phylogenetic tree
     """
     # calculate distance - https://biopython.org/wiki/Phylo
@@ -219,6 +220,7 @@ def plot_phylo_tree(align: MultipleSeqAlignment, accession_numbers: dict):
     # draw the resulting tree
     Phylo.draw(tree, show_confidence=False, axes=ax, do_show=False)
     ax.set_xlim(right=1.3*ax.get_xlim()[1])
+    ax.set_title(title)
     return fig
 
 
@@ -397,7 +399,7 @@ if __name__ == '__main__':
         plt.savefig(os.path.join('..', 'figures', f'distance_{name}_{gene_name}.png'))
 
     # plot the resulting tree
-    fig = plot_phylo_tree(align_cds, trans_dict)
+    fig = plot_phylo_tree(align_cds, trans_dict, title="Phylogenetic tree based on the CDS of the HBB gene")
     fig.savefig(os.path.join('..', 'figures', f'tree_{gene_name}.png'))
 
     df_cds = get_distance_dataframe(align_cds)

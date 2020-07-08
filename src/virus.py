@@ -40,7 +40,7 @@ def download_data(genome_accession_numbers: list) -> list:
     return seq_records
 
 
-def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> MultipleSeqAlignment:
+def align_sequences(input_file: str, output_file: str = "virus_alignment.fasta") -> MultipleSeqAlignment:
     """
     Aligns the sequences using the muscle algorithm
     :param input_file: fasta-file with the input sequences
@@ -216,7 +216,7 @@ if __name__ == '__main__':
 
     # align the sequences
     #align = align_sequences("downloads.fasta")
-    align = AlignIO.read(os.path.join("..", "data", "alignment.fasta"), "fasta")
+    align = AlignIO.read(os.path.join("..", "data", "virus_alignment.fasta"), "fasta")
     print(align)
     fig = view_alignment(align, accession_numbers)
     fig.savefig(os.path.join('..', 'figures', 'alignment.png'), bbox_inches='tight', dpi=300)
