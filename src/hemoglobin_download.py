@@ -6,6 +6,7 @@ import seaborn as sns
 from Bio import SeqIO, Align
 from Bio.Align import substitution_matrices
 
+from src.utils.gene_io import get_gene_id, get_gene_record
 from src.utils.plotting import plot_phylo_tree, print_gene_record, plot_alignment_heatmap
 from src.utils.record_utils import create_records
 from src.utils.alignment_utils import get_distance_dataframe, align_sequences
@@ -28,6 +29,12 @@ if __name__ == '__main__':
 
     gene_name = 'HBB'
 
+    # create dir
+    data_path = os.path.join("..", "data", gene_name)
+    figure_path = os.path.join("..", "figures", gene_name)
+    for p in [data_path, figure_path]:
+        os.makedirs(os.path.abspath(p), exist_ok=True)
+
     '''
     # get gene ids
     gene_ids = [get_gene_id(organism, gene_name) for organism in organism_list]
@@ -36,10 +43,10 @@ if __name__ == '__main__':
     gene_records = [get_gene_record(gene_id) for gene_id in gene_ids]
 
     # write them in file for later upload
-    SeqIO.write(gene_records, os.path.join('..', 'data', "trog_downloads.gb"), "genbank")
+    SeqIO.write(gene_records, os.path.join(data_path, "trog_downloads.gb"), "genbank")
     '''
 
-    gene_records = list(SeqIO.parse(os.path.join('..', 'data', "trog_downloads.gb"), "genbank"))
+    gene_records = list(SeqIO.parse(os.path.join(data_path, "trog_downloads.gb"), "genbank"))
 
     # translate dict
     trans_dict = dict(
@@ -50,17 +57,20 @@ if __name__ == '__main__':
 
     # print one gene record
     fig = print_gene_record(gene_records[0])
-    fig.savefig(os.path.join("..", "figures", "human_gene_DNA.png"))
+    fig.savefig(os.path.join(figure_path, "human_gene_DNA.png"))
 
     # get amino-acid sequence
     amino_records = create_records(gene_records, 'amino')
     #fig = plot_basics(amino_records, organism_list)
 
     # save as fasta-file for alignment
-    SeqIO.write(amino_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+    SeqIO.write(amino_records, os.path.join(data_path, "trog_before_alignment.fasta"), "fasta")
 
     # align the sequences
-    align_amino = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    align_amino = align_sequences(
+        input_file=os.path.join(data_path, "trog_before_alignment.fasta"),
+        output_file=os.path.join(data_path, "trog_after_alignment.fasta")
+    )
     print(align_amino)
 
     aligner = Align.PairwiseAligner()
@@ -74,10 +84,13 @@ if __name__ == '__main__':
     #fig = plot_basics(cds_records, organism_list)
 
     # save as fasta-file for alignment
-    SeqIO.write(cds_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+    SeqIO.write(cds_records, os.path.join(data_path, "trog_before_alignment.fasta"), "fasta")
 
     # align the sequences
-    align_cds = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    align_cds = align_sequences(
+        input_file=os.path.join(data_path, "trog_before_alignment.fasta"),
+        output_file=os.path.join(data_path, "trog_after_alignment.fasta")
+    )
     print(align_cds)
 
     aligner = Align.PairwiseAligner()
@@ -92,19 +105,22 @@ if __name__ == '__main__':
     #fig = plot_basics(full_records, organism_list)
 
     # save as fasta-file for alignment
-    SeqIO.write(full_records, os.path.join('..', 'data', "trog_before_alignment.fasta"), "fasta")
+    SeqIO.write(full_records, os.path.join(data_path, "trog_before_alignment.fasta"), "fasta")
 
     # align the sequences
-    align_full = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    align_full = align_sequences(
+        input_file=os.path.join(data_path, "trog_before_alignment.fasta"),
+        output_file=os.path.join(data_path, "trog_after_alignment.fasta")
+    )
     print(align_full)
 
     for al, name in zip([align_amino, align_cds, align_full], ["amino-acids", "exons", "exons and introns"]):
-        fig = plot_alignment_heatmap(al, f'Percent difference based on {name}')
-        fig.savefig(os.path.join('..', 'figures', f'distance_{name}_{gene_name}.png'))
+        fig = plot_alignment_heatmap(al, title=f'Percent difference based on {name}', trans_dict=trans_dict)
+        fig.savefig(os.path.join(figure_path, f'distance_{name}_{gene_name}.png'))
 
     # plot the resulting tree
     fig = plot_phylo_tree(align_cds, trans_dict, title="Phylogenetic tree based on the CDS of the HBB gene")
-    fig.savefig(os.path.join('..', 'figures', f'tree_{gene_name}.png'))
+    fig.savefig(os.path.join(figure_path, f'tree_{gene_name}.png'))
 
     df_cds = get_distance_dataframe(align_cds, trans_dict)
     df_full = get_distance_dataframe(align_full, trans_dict)
@@ -137,12 +153,15 @@ if __name__ == '__main__':
 
     SeqIO.write(
         out_records,
-        os.path.join('..', 'data', "trog_before_alignment.fasta"),
+        os.path.join(data_path, "trog_before_alignment.fasta"),
         "fasta"
     )
 
     # align the sequences
-    align_print = align_sequences("trog_before_alignment.fasta", output_file="trog_after_alignment.fasta")
+    align_print = align_sequences(
+        input_file=os.path.join(data_path, "trog_before_alignment.fasta"),
+        output_file=os.path.join(data_path, "trog_after_alignment.fasta")
+    )
     print(align_print)
 
     # todo: check if nucleotide is part of the cds by position
@@ -174,7 +193,7 @@ if __name__ == '__main__':
             fontsize=8,
             transform=ax.transAxes)
     ax.set_axis_off()
-    fig.savefig(os.path.join("..", "figures", "human_to_chimp.png"))
+    fig.savefig(os.path.join(figure_path, "human_to_chimp.png"))
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     print('finished!')

@@ -10,11 +10,11 @@ from io import StringIO
 from Bio import AlignIO
 
 
-def get_distance_dataframe(alignments, transdict=None):
+def get_distance_dataframe(alignments, trans_dict=None):
     calculator = DistanceCalculator('identity')
     dm = calculator.get_distance(alignments)
 
-    if transdict is None:
+    if trans_dict is None:
         # create a translation dictionary for human understandable labels
         trans_dict = dict(
             (alignment.id, " ".join(alignment.description.split()[1:3])) for alignment in alignments
@@ -47,7 +47,7 @@ def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> Mu
     muscle_exe = os.path.join('..', 'muscle3.8.31_i86linux64')
 
     # define the command line for muscle
-    muscle_cline = MuscleCommandline(muscle_exe, input=os.path.join('..', 'data', input_file))
+    muscle_cline = MuscleCommandline(muscle_exe, input=input_file)
 
     # use 2 iterations; when sequences are far apart, the attempt to reach a more finer alignment leads to an error
     muscle_cline.maxiters = 2
@@ -59,7 +59,7 @@ def align_sequences(input_file: str, output_file: str = "alignment.fasta") -> Mu
     stdout, stderr = muscle_cline()
 
     # save for later faster processing or testing
-    with open(os.path.join('..', 'data', output_file), "w") as alignment_file:
+    with open(output_file, "w") as alignment_file:
         alignment_file.write(stdout)
 
     # return the aligned sequences

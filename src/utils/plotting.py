@@ -100,12 +100,12 @@ def print_gene_record(gene_record, line_length=int(100)):
     return fig
 
 
-def plot_alignment_heatmap(alignments, transdict=None, title="Percent difference"):
+def plot_alignment_heatmap(alignments, trans_dict=None, title="Percent difference"):
     # calculate distance - https://biopython.org/wiki/Phylo
     calculator = DistanceCalculator('identity')
     dm = calculator.get_distance(alignments)
 
-    if transdict is None:
+    if trans_dict is None:
         # create a translation dictionary for human understandable labels
         trans_dict = dict(
             (alignment.id, " ".join(alignment.description.split()[1:3])) for alignment in alignments
